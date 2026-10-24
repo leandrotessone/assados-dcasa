@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Assados D’Casa – Pedidos</title>
+<title>Assados D’Casa – Faça seu pedido</title>
 <style>
 :root{--bg:#fbf6ef;--card:#fff;--tx:#2b2118;--mut:#7a6a5b;--ac:#c8201c;--acx:#fff;--bd:#e8dccd;--ok:#15803d;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -40,11 +40,6 @@ input,select,textarea{width:100%;padding:10px;border:1px solid var(--bd);border-
 <body>
 <main>
 <div style="background:#111;border-bottom:4px solid #fbbf24;border-radius:14px;padding:14px 16px;margin-bottom:12px"><h1 style="margin:0;color:#fbbf24">🔥 Assados D’Casa</h1><div style="color:#f3e9de;font-size:14px">Cardápio de domingo, 25/10 · Nossa família atendendo a sua.</div><div style="color:#fbbf24;font-size:13px;margin-top:6px">📍 Rua Bernardino de Campos, 35 · (16) 99789-6199</div></div>
-<div class="tabs">
-  <button id="t1" class="on" onclick="tab(1)">Fazer pedido</button>
-  <button id="t2" onclick="tab(2)">Painel (dono)</button>
-</div>
-
 <section id="v1">
   <div class="card" id="menu"></div>
   <div class="card">
@@ -64,12 +59,6 @@ input,select,textarea{width:100%;padding:10px;border:1px solid var(--bd);border-
   <div class="hint" id="msg1"></div>
 </section>
 
-<section id="v2" hidden>
-  <div class="card"><b>O que preparar</b><div id="prod" style="margin-top:8px"></div></div>
-  <div class="card"><div class="row"><b>Pedidos</b><span id="fat" class="pill"></span></div><div id="lista" style="margin-top:8px"></div></div>
-  <button class="btn sec" onclick="limpar()">Limpar todos os pedidos</button>
-  <div class="hint">Protótipo: os pedidos ficam salvos só neste aparelho. Na versão real, os pedidos de todos os clientes chegam aqui automaticamente.</div>
-</section>
 </main>
 
 <script>
@@ -88,12 +77,9 @@ var CARD = [
   {id:"pa",n:"🥓 Panceta",p:70},
   {id:"sm",n:"🥗 Salada de Maionese (500g)",p:25}
 ];
-var qtd = {}, pedidos = [], mem = null;
+var qtd = {};
 function brl(v){return "R$ "+v.toFixed(2).replace(".",",")}
 function $(i){return document.getElementById(i)}
-function load(){try{var s=localStorage.getItem("pedidos_v1");pedidos=s?JSON.parse(s):[]}catch(e){pedidos=mem||[]}}
-function save(){try{localStorage.setItem("pedidos_v1",JSON.stringify(pedidos))}catch(e){mem=pedidos}}
-function tab(n){$("v1").hidden=n!=1;$("v2").hidden=n!=2;$("t1").className=n==1?"on":"";$("t2").className=n==2?"on":"";if(n==2)painel()}
 function menu(){
   $("menu").innerHTML=CARD.map(function(c){return '<div class="item"><div>'+c.n+'<small>'+brl(c.p)+'</small></div><div class="step"><button onclick="mv(\''+c.id+'\',-1)">−</button><b id="q_'+c.id+'">'+(qtd[c.id]||0)+'</b><button onclick="mv(\''+c.id+'\',1)">+</button></div></div>'}).join("");
 }
@@ -104,28 +90,13 @@ function enviar(){
   var itens=CARD.filter(function(c){return qtd[c.id]>0});
   if(!itens.length){$("msg1").textContent="Escolha pelo menos um item.";return}
   if(!$("nome").value.trim()){$("msg1").textContent="Informe seu nome.";return}
-  var o={id:Date.now(),nome:$("nome").value.trim(),tel:$("tel").value.trim(),tipo:$("tipo").value,end:$("end").value.trim(),hora:$("hora").value,pag:$("pag").value,obs:$("obs").value.trim(),q:JSON.parse(JSON.stringify(qtd)),pago:false,entregue:false};
-  pedidos.push(o);save();
+  var o={id:Date.now(),nome:$("nome").value.trim(),tel:$("tel").value.trim(),tipo:$("tipo").value,end:$("end").value.trim(),hora:$("hora").value,pag:$("pag").value,obs:$("obs").value.trim(),q:JSON.parse(JSON.stringify(qtd))};
   var t="*Novo pedido – Assados D’Casa* 🔥\nNome: "+o.nome+(o.tel?"\nTel: "+o.tel:"")+"\n\n"+itens.map(function(c){return qtd[c.id]+"x "+c.n}).join("\n")+"\n\nTotal: "+brl(soma(qtd))+"\n"+o.tipo+(o.tipo=="Entrega"&&o.end?" – "+o.end:"")+" às "+o.hora+"\nPagamento: "+o.pag+(o.obs?"\nObs: "+o.obs:"");
   window.open("https://wa.me/"+FONE+"?text="+encodeURIComponent(t),"_blank");
   qtd={};menu();$("tot").textContent=brl(0);$("obs").value="";
-  $("msg1").textContent="Pedido enviado e registrado no painel (demo).";
+  $("msg1").textContent="Pedido enviado! Confirme no WhatsApp.";
 }
-function painel(){
-  load();
-  var tp={};pedidos.forEach(function(o){for(var k in o.q)tp[k]=(tp[k]||0)+o.q[k]});
-  var h=CARD.filter(function(c){return tp[c.id]}).map(function(c){return '<div class="item"><span>'+c.n+'</span><b>'+tp[c.id]+'</b></div>'}).join("");
-  $("prod").innerHTML=h||'<div class="empty">Nenhum pedido ainda.</div>';
-  var fat=pedidos.reduce(function(s,o){return s+soma(o.q)},0);
-  $("fat").textContent=brl(fat);
-  $("lista").innerHTML=pedidos.length?pedidos.slice().sort(function(a,b){return a.hora<b.hora?-1:1}).map(function(o){
-    var its=CARD.filter(function(c){return o.q[c.id]}).map(function(c){return o.q[c.id]+"x "+c.n}).join(", ");
-    return '<div class="item" style="display:block"><div class="row"><b>'+esc(o.nome)+'</b><span>'+o.hora+' · '+brl(soma(o.q))+'</span></div><small>'+its+'</small><small>'+o.tipo+(o.end?": "+esc(o.end):"")+' · '+o.pag+(o.obs?' · '+esc(o.obs):"")+'</small><div class="row" style="margin-top:6px;justify-content:flex-start"><span class="pill'+(o.pago?' ok':'')+'"><button onclick="tg('+o.id+',\'pago\')">'+(o.pago?'✓ Pago':'Marcar pago')+'</button></span><span class="pill'+(o.entregue?' ok':'')+'"><button onclick="tg('+o.id+',\'entregue\')">'+(o.entregue?'✓ Entregue':'Marcar entregue')+'</button></span></div></div>'}).join(""):'<div class="empty">Sem pedidos.</div>';
-}
-function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
-function tg(id,k){pedidos.forEach(function(o){if(o.id==id)o[k]=!o[k]});save();painel()}
-function limpar(){if(pedidos.length&&confirm("Apagar todos os pedidos?")){pedidos=[];save();painel()}}
-load();menu();
+menu();
 </script>
 </body>
 </html>
